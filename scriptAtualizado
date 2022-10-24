@@ -1,0 +1,63 @@
+
+##*===============================================
+## Váriaveis da aplicação ## 
+##*===============================================
+	[string]$appVendor = 'Script de ativação do Windows'
+	[string]$appName = 'Tupinampai'
+	[string]$appVersion = ''
+	[string]$appArch = ''
+	[string]$appLang = 'PT-BR'
+	[string]$appRevision = '01'
+	[string]$appScriptVersion = '2.0.0'
+	[string]$appScriptDate = '??/??/2022'
+	[string]$appScriptAuthor = '<Gustavo, Alef, Matheus Filipe, Matheus R.Ulhoa e João>'
+##*===============================================
+
+#Recebimento da chave do windows.
+Clear-Host
+Write-Host "------------------TUPINAMPAI------------------" -ForegroundColor DarkYellow`n
+:loop
+for ($i = 0; $i -ne 1) {
+    $chave = 'D8R89-NV4YF-X9KGM-JWKDK-6CQGY'
+
+    #Código de instalação da chave na máquina. 
+    cscript slmgr.vbs /ipk $chave | Out-File -FilePath  C:\Users\DEV\Desktop\teste.txt
+    if (gci -path C:\Users\DEV\Desktop\teste.txt | sls "instalada com ˆxito."){$i = 1, (Write-Host "Chave válida e instalada com SUCESSO!!!"-ForegroundColor green)}
+    else {$i= 0,(Write-Host "Chave inválida Por favor tente novamente..."`n -ForegroundColor red)}
+        #if(gci -path C:\Users\DEV\Desktop\teste.txt | sls "instalada"){Write-Host "Chave inválida Por favor tente novamente..."`n -ForegroundColor red}
+ 
+    for ($i = 0; $i -ne 1) {
+    #Código de ativação da chave que foi instalada na máquina. 
+    cscript slmgr.vbs /ato | Out-File -FilePath  C:\Users\DEV\Desktop\teste.txt
+    if (gci -path C:\Users\DEV\Desktop\teste.txt | sls "ativado"){$i = 1, (Write-Host "Máquina Ativada com SUCESSO!!!"-ForegroundColor green)} 
+    else {Write-Host "Chave Bloqueada Por favor tente novamente..."`n -ForegroundColor red
+    break :loop}
+        #if (){Write-Host "ERRO[402] Chave bloqueada, Por favor tente novamente..."`n -ForegroundColor red -NoNewline -BackgroundColor black }
+    #$i = Read-Host "Digite 1 para finalizar ou 0 para continuar"
+}
+
+}
+#código para verificação do licenciamento do windows.
+cscript slmgr.vbs /dli | Out-File -FilePath  C:\Users\DEV\Desktop\teste.txt
+if (gci -path C:\Users\DEV\Desktop\teste.txt | sls "Licenciado"){Write-Host "Licenciado com SUCESSO!!!"-ForegroundColor green} else {"Derrota"}
+
+
+#código para a inserção do serial da máquina no banco de dados.
+#
+for ($i = 0; $i -ne 1) {
+    $array = @(wmic bios get serialnumber)
+    $array[2] | Set-Clipboard
+    $bancoS = $array[2]
+    #$bancod = $bancoS.Remove(1)
+    #$bancod | Set-Clipboard
+    #$bancoS = Read-Host = "Digite o serial da máquina"
+    Write-Host 
+    if ($array[2] -eq $bancoS){$i = 1}  
+        if ($array[2] -eq $bancoS){Write-Host "Serial inserido no banco de dados com SUCESSO!!!"-ForegroundColor green}  
+    else {$i= 0} 
+        if ($array[2] -ne $bancoS){Write-Host "ERRO[404] Serial inválido, Por favor tente novamente..."`n -ForegroundColor red }
+    #$i = Read-Host "Digite 1 para finalizar ou 0 para continuar"
+}
+#"Serial instalado com sucesso!!! #"Serial inválido" 
+
+#D8R89-NV4YF-X9KGM-JWKDK-6CQGY
