@@ -1,19 +1,54 @@
 Clear-Host
-##*===============================================
-## Váriaveis da aplicação ## 
-##*===============================================
-	[string]$appVendor = 'Script de ativação do Windows'
-	[string]$appName = 'Tupinampai'
-	[string]$appVersion = ''
-	[string]$appArch = ''
-	[string]$appLang = 'PT-BR'
-	[string]$appRevision = '01'
-	[string]$appScriptVersion = '2.0.0'
-	[string]$appScriptDate = '??/??/2022'
-	[string]$appScriptAuthor = '<Gustavo, Alef, Matheus Filipe, Matheus R.Ulhoa e João>'
-##*===============================================
 
-Clear-Host
+Import-Module SimplySql
+Get-Module SimplySql
+
+$myconnection = New-Object MySql.Data.MySqlClient.MySqlConnection
+$myconnection.ConnectionString = “server=localhost;user id=root;password=lab2022#mtec;database=dto_keys;pooling=false”
+
+#FUNCAO PARA PEGAR UMA NOVA CHAVE NO BANCO
+function getKeyDb {
+    
+    $primeiraConsulta = Invoke-SqlQuery "SELECT idkey,keycontent FROM general_keys WHERE keystate=0 LIMIT 1;";
+    return $primeiraConsulta
+
+}
+
+#FUNCAO QUE MUDA O STATUS DA CHAVE PARA CHAVE EM USO
+function setStateUsing {
+
+    Invoke-SqlQuery "UPDATE general_keys SET keystate=1,bancada='b1' WHERE idkey=$idkey;"
+
+}
+
+#FUNCAO QUE MUDA O STATUS DA CHAVE PARA BLOQUEADA
+function setStateForBloqued{
+
+    Invoke-SqlQuery "UPDATE general_keys SET keystate=2 WHERE idkey=$idkey;"
+
+}
+
+#FUNCAO QUE MUDA STATUS PARA ATIVADA ATUALIZANDO SERIAL
+function setStateForActived{
+
+    Invoke-SqlQuery "UPDATE general_keys SET serialcontent=$serial, keystate=3 WHERE idkey=$idkey;"
+
+}
+
+#RESGATANDO CHAVE DA FUNCAO E SEPARANDO ID E KEY
+$vetor = getKeyDb
+$idkey = $vetor[0]
+$keycont=$vetor[1]
+$idkey
+$keycont
+
+setStateUsing
+
+
+<#
+#=============================================================*************************************************
+function ativation {
+
 Write-Host "------------------TUPINAMPAI------------------" -ForegroundColor DarkYellow`n
 ##**===========================================================================================================================
 ## Estrutura de loop para a ativação e tratamento de erros do sistema
@@ -56,30 +91,17 @@ for ($i = 0; $i -ne 1) {
     break :loop}
     $log
     ##*====================================================================================
-  
-}
-
-}
-
-##**===========================================================================================================================
-
-
-
-
-
-
-##*====================================================================================
-#Estrutura de condição for e if que realiza a busca do serial da máquina.
-
-#código para verificação do licenciamento do windows.
 $log = cscript slmgr.vbs /dli
 if ($log | sls "Licenciado"){Write-Host "Licenciado com SUCESSO!!!"-ForegroundColor green} else {"Derrota"}
 $log
+}
 
+}
+}
 
-#código para a inserção do serial da máquina no banco de dados.
-#
-for ($i = 0; $i -ne 1) {
+function serial {
+    
+    for ($i = 0; $i -ne 1) {
     $array = @(wmic bios get serialnumber)
     $array[2] | Set-Clipboard
     $bancoS = $array[2]
@@ -90,7 +112,12 @@ for ($i = 0; $i -ne 1) {
         if ($array[2] -ne $bancoS){Write-Host "ERRO[404] Serial inválido, Por favor tente novamente..."`n -ForegroundColor red }
   
 }
-##*====================================================================================
-#D8R89-NV4YF-X9KGM-JWKDK-6CQGY
+    
+}
+ativation
+serial
 
 
+#Remove-Item C:\Windows\System32\tupinampai.ps1
+#Set-ExecutionPolicy Restricted
+#>
