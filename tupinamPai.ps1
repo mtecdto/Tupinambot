@@ -57,3 +57,31 @@ essa ação manualmente. ***
 EXEMPLO: $SERIAL = wmic bios get serialnumber
 EXEMPLO: $SERIAL  | Set-Clipboard
 #>
+
+
+<# conectores SQL
+Clear-Host
+Import-Module SimplySql
+Get-Module SimplySql
+Open-MySqlConnection -server "localhost" -database "dto_keys" -Credential (Get-Credential)
+
+
+function getKeyDb {
+    
+    $primeiraConsulta = Invoke-SqlQuery "SELECT idkey,keycontent FROM general_keys WHERE keystate=0 LIMIT 1;";
+    $primeiraConsulta
+    $primeiraConsulta | Format-Table -Property idkey -AutoSize
+
+}
+
+function setStateUsing {
+    Invoke-SqlQuery "UPDATE general_keys SET keystate=1,bancada=? WHERE idkey=?;"
+}
+
+
+
+
+getKeyDb
+
+#>
+
