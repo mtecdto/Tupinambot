@@ -3,8 +3,12 @@ Clear-Host
 Import-Module SimplySql
 Get-Module SimplySql
 
-$myconnection = New-Object MySql.Data.MySqlClient.MySqlConnection
-$myconnection.ConnectionString = “server=localhost;user id=root;password=lab2022#mtec;database=dto_keys;pooling=false”
+$password=ConvertTo-SecureString "2022" -AsPlainText -Force
+$cred=New-Object System.Management.Automation.PSCredential("dtouser",$password)
+
+Open-MySqlConnection -server "localhost" -database "dto_keys" -Credential ($cred)
+
+#..................................................................................................................
 
 #FUNCAO PARA PEGAR UMA NOVA CHAVE NO BANCO
 function getKeyDb {
@@ -23,6 +27,10 @@ function setStateUsing {
 
 #FUNCAO QUE MUDA O STATUS DA CHAVE PARA BLOQUEADA
 function setStateForBloqued{
+    Write-Host "BLOQUEADA"
+    $idkey
+    $keycontent
+    Write-Host "BLOQUEADA"
 
     Invoke-SqlQuery "UPDATE general_keys SET keystate=2 WHERE idkey=$idkey;"
 
@@ -31,93 +39,80 @@ function setStateForBloqued{
 #FUNCAO QUE MUDA STATUS PARA ATIVADA ATUALIZANDO SERIAL
 function setStateForActived{
 
-    Invoke-SqlQuery "UPDATE general_keys SET serialcontent=$serial, keystate=3 WHERE idkey=$idkey;"
+    Write-Host "ATIVADA"
+
+    $idkey
+   
+    Write-Host "ATIVADA"
+    
+    $array = @(wmic bios get serialnumber)
+    $serialnumber = $array[2]
+
+    Invoke-SqlQuery "UPDATE general_keys SET serialcontent='$serialnumber',keystate=3 WHERE idkey=$idkey;"
 
 }
 
-#RESGATANDO CHAVE DA FUNCAO E SEPARANDO ID E KEY
-$vetor = getKeyDb
-$idkey = $vetor[0]
-$keycont=$vetor[1]
-$idkey
-$keycont
-
-setStateUsing
+#..................................................................................................................
 
 
-<#
-#=============================================================*************************************************
 function ativation {
 
-Write-Host "------------------TUPINAMPAI------------------" -ForegroundColor DarkYellow`n
-##**===========================================================================================================================
-## Estrutura de loop para a ativação e tratamento de erros do sistema
+    Write-Host "------------------TUPINAMPAI------------------" -ForegroundColor DarkYellow`n
+    ##**===========================================================================================================================
+    ## Estrutura de loop para a ativação e tratamento de erros do sistema
 
-:loop
-for ($i = 0; $i -ne 1) {
-    ##*===============================================
-    ## Recebimento da chave do windows
-    $chave = 'D8R89-NV4YF-X9KGM-JWKDK-6CQGY'
-    ##*===============================================
-
-
-    ##*===============================================
-    #Código de instalação da chave na máquina. 
-    $log = cscript slmgr.vbs /ipk $chave 
-    ##*===============================================
-
-
-
-    ##*====================================================================================
-    #Estrutura de condição if que verifica se a chave do windows foi instalado com sucesso.
-
-    if ($log | sls "instalada com êxito."){$i = 1, (Write-Host "Chave válida e instalada com SUCESSO!!!"-ForegroundColor green)}
-    else {$i= 0,(Write-Host "Chave inválida Por favor tente novamente..."`n -ForegroundColor red)}
-    $log
-    ##*====================================================================================
-
-
-
-    ##*====================================================================================
-    #Estrutura de condição for e if que verifica se a chave do windows ativou o windows com sucesso.
-
+    :loop
     for ($i = 0; $i -ne 1) {
+        ##*===============================================
+        ## Recebimento da chave do windows
+        $chave = getKeyDb
+        $idkey = $chave[0]
+        $keycont=$chave[1]
+        setStateUsing
+        ##*===============================================
 
-    #Código de ativação da chave que foi instalada na máquina. 
-    $log = cscript slmgr.vbs /ato 
+
+        ##*===============================================
+        #Código de instalação da chave na máquina. 
+        $logVbsIpk = cscript slmgr.vbs /ipk $keycont 
+        ##*===============================================
+
+
+
+        ##*====================================================================================
+        #Estrutura de condição if que verifica se a chave do windows foi instalado com sucesso.
+
+        if ($logVbsIpk | sls "instalada com êxito."){$i = 1, (Write-Host "Chave válida e instalada com SUCESSO!!!"-ForegroundColor green)}
+        else {$i= 0,(Write-Host "Chave inválida Por favor tente novamente..."`n -ForegroundColor red)}
+        $logVbsIpk
+        ##*====================================================================================
+
+
+
+        ##*====================================================================================
+        #Estrutura de condição for e if que verifica se a chave do windows ativou o windows com sucesso.
+
+        for ($i = 0; $i -ne 1) {
+
+            #Código de ativação da chave que foi instalada na máquina. 
+            $logVBS = cscript slmgr.vbs /ato 
   
-    if ($log | sls "Produto ativado com êxito."){$i = 1, (Write-Host "Máquina Ativada com SUCESSO!!!"-ForegroundColor green)} 
-    else {Write-Host "Chave Bloqueada Por favor tente novamente..."`n -ForegroundColor red
-    break :loop}
-    $log
-    ##*====================================================================================
-$log = cscript slmgr.vbs /dli
-if ($log | sls "Licenciado"){Write-Host "Licenciado com SUCESSO!!!"-ForegroundColor green} else {"Derrota"}
-$log
+            if ($logVBS | sls "Produto ativado com êxito."){setStateForActived $i = 1, (Write-Host "Máquina Ativada com SUCESSO!!!"-ForegroundColor green)} 
+            else {setStateForBloqued Write-Host "Chave Bloqueada Por favor tente novamente..."`n -ForegroundColor red
+            break :loop}
+            $logVBS
+            ##*====================================================================================
+            $logDLI = cscript slmgr.vbs /dli
+            if ($logDLI | sls "Licenciado"){$i = 1,(Write-Host "Licenciado com SUCESSO!!!"-ForegroundColor green)} else {"Derrota"}
+            $logDLI
+
+        }
+
+    }
 }
 
-}
-}
 
-function serial {
-    
-    for ($i = 0; $i -ne 1) {
-    $array = @(wmic bios get serialnumber)
-    $array[2] | Set-Clipboard
-    $bancoS = $array[2]
-    Write-Host 
-    if ($array[2] -eq $bancoS){$i = 1}  
-        if ($array[2] -eq $bancoS){Write-Host "Serial inserido no banco de dados com SUCESSO!!!"-ForegroundColor green}  
-    else {$i= 0} 
-        if ($array[2] -ne $bancoS){Write-Host "ERRO[404] Serial inválido, Por favor tente novamente..."`n -ForegroundColor red }
-  
-}
-    
-}
 ativation
-serial
-
 
 #Remove-Item C:\Windows\System32\tupinampai.ps1
 #Set-ExecutionPolicy Restricted
-#>
